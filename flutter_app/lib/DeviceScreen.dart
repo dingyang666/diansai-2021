@@ -5,10 +5,7 @@ import 'package:flutter_app/widgets.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 class DeviceScreen extends StatelessWidget {
-  DeviceScreen({Key? key, required this.device}) : super(key: key) {
-    device.discoverServices();
-  }
-
+  const DeviceScreen({Key? key, required this.device}) : super(key: key);
   final BluetoothDevice device;
 
   List<Widget> _buildServiceTiles(List<BluetoothService> services) {
@@ -37,6 +34,8 @@ class DeviceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    device.discoverServices();
+
     return Scaffold(
       appBar: buildAppBar(context),
       body: SingleChildScrollView(

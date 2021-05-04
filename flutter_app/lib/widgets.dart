@@ -168,7 +168,9 @@ class CharacteristicTile extends StatelessWidget {
         return ExpansionTile(
           title: ListTile(
             subtitle: Text(
-                "frequency1 : ${caluFrequency1(value!)}\n\nfrequency2 :  ${caluFrequency2(value)}",style: TextStyle(fontSize: 30),),
+              "通道1 : ${caluFrequency1(value!)}\n\n通道2 :  ${caluFrequency2(value)}",
+              style: TextStyle(fontSize: 28),
+            ),
             contentPadding: EdgeInsets.all(0.0),
           ),
           trailing: Row(
@@ -189,15 +191,30 @@ class CharacteristicTile extends StatelessWidget {
     );
   }
 
-  int caluFrequency1(List<int> value) {
-    print(value.toString());
-    if (value.length < 7) return 0;
-    return (value[0] + value[1] * 255 + value[2] * 255 * 255 + value[3] * 255 * 255* 255) >> 1;
+  String caluFrequency1(List<int> value) {
+    if (value.length < 7) return "连接错误";
+    var f =
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 2;
+    return getUnit(f);
   }
 
-  int caluFrequency2(List<int> value) {
-    if (value.length < 7) return 0;
-    return (value[4] + value[5] * 255 + value[6] * 255* 255 + value[7] * 255* 255* 255) >> 1;
+  String caluFrequency2(List<int> value) {
+    if (value.length < 7) return "连接错误";
+    var f =
+        (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24)) / 2;
+    return getUnit(f);
+  }
+
+  String getUnit(double f) {
+    if (f < 1e3) {
+      return "${(f).toStringAsFixed(3)}  Hz";
+    } else if (f < 1e6) {
+      return "${(f / 1e3).toStringAsFixed(3)}  kHz";
+    } else if (f < 1e9) {
+      return "${(f / 1e6).toStringAsFixed(3)}  MHz";
+    }
+
+    return "超过量程";
   }
 }
 
