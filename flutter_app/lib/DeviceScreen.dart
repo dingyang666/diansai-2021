@@ -1,4 +1,3 @@
-
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -6,144 +5,44 @@ import 'package:flutter_app/widgets.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 class DeviceScreen extends StatelessWidget {
-  const DeviceScreen({Key? key, required this.device}) : super(key: key);
+  DeviceScreen({Key? key, required this.device}) : super(key: key) {
+    device.discoverServices();
+  }
 
   final BluetoothDevice device;
 
-  List<int> _getRandomBytes() {
-    final math = Random();
-    return [
-      math.nextInt(255),
-      math.nextInt(255),
-      math.nextInt(255),
-      math.nextInt(255)
-    ];
-  }
-
   List<Widget> _buildServiceTiles(List<BluetoothService> services) {
     return services
-        .map(
-          (s) => ServiceTile(
+        .where((element) => element.uuid.toString().split("-")[0] == "0000a000")
+        .map((s) {
+      if (s.characteristics.isNotEmpty) {
+        s.characteristics[0].setNotifyValue(true);
+      }
+      return ServiceTile(
         service: s,
-        characteristicTiles: s.characteristics
-            .map(
-              (c) => CharacteristicTile(
-            characteristic: c,
-            onReadPressed: () => c.read(),
-            onWritePressed: () async {
-              await c.write(_getRandomBytes(), withoutResponse: true);
-              await c.read();
-            },
-            onNotificationPressed: () async {
-              await c.setNotifyValue(!c.isNotifying);
-              await c.read();
-            },
-            descriptorTiles: c.descriptors
-                .map(
-                  (d) => DescriptorTile(
-                descriptor: d,
-                onReadPressed: () => d.read(),
-                onWritePressed: () => d.write(_getRandomBytes()),
-              ),
-            )
-                .toList(),
-          ),
-        )
-            .toList(),
-      ),
-    )
-        .toList();
+        characteristicTiles: s.characteristics.map(
+          (c) {
+            return CharacteristicTile(
+              characteristic: c,
+              onNotificationPressed: () async {
+                await c.setNotifyValue(!c.isNotifying);
+                await c.read();
+              },
+            );
+          },
+        ).toList(),
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(device.name),
-        actions: <Widget>[
-          StreamBuilder<BluetoothDeviceState>(
-            stream: device.state,
-            initialData: BluetoothDeviceState.connecting,
-            builder: (c, snapshot) {
-              VoidCallback? onPressed;
-              String text;
-              switch (snapshot.data) {
-                case BluetoothDeviceState.connected:
-                  onPressed = () => device.disconnect();
-                  text = 'DISCONNECT';
-                  break;
-                case BluetoothDeviceState.disconnected:
-                  onPressed = () => device.connect();
-                  text = 'CONNECT';
-                  break;
-                default:
-                  onPressed = null;
-                  text = snapshot.data.toString().substring(21).toUpperCase();
-                  break;
-              }
-              return FlatButton(
-                  onPressed: onPressed,
-                  child: Text(
-                    text,
-                    style: Theme.of(context)
-                        .primaryTextTheme
-                        .button
-                        ?.copyWith(color: Colors.white),
-                  ));
-            },
-          )
-        ],
-      ),
+      appBar: buildAppBar(context),
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            StreamBuilder<BluetoothDeviceState>(
-              stream: device.state,
-              initialData: BluetoothDeviceState.connecting,
-              builder: (c, snapshot) => ListTile(
-                leading: (snapshot.data == BluetoothDeviceState.connected)
-                    ? Icon(Icons.bluetooth_connected)
-                    : Icon(Icons.bluetooth_disabled),
-                title: Text(
-                    'Device is ${snapshot.data.toString().split('.')[1]}.'),
-                subtitle: Text('${device.id}'),
-                trailing: StreamBuilder<bool>(
-                  stream: device.isDiscoveringServices,
-                  initialData: false,
-                  builder: (c, snapshot) => IndexedStack(
-                    index: snapshot.data! ? 1 : 0,
-                    children: <Widget>[
-                      IconButton(
-                        icon: Icon(Icons.refresh),
-                        onPressed: () => device.discoverServices(),
-                      ),
-                      IconButton(
-                        icon: SizedBox(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(Colors.grey),
-                          ),
-                          width: 18.0,
-                          height: 18.0,
-                        ),
-                        onPressed: null,
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            StreamBuilder<int>(
-              stream: device.mtu,
-              initialData: 0,
-              builder: (c, snapshot) => ListTile(
-                title: Text('MTU Size'),
-                subtitle: Text('${snapshot.data} bytes'),
-                trailing: IconButton(
-                  icon: Icon(Icons.edit),
-                  onPressed: () => device.requestMtu(223),
-                ),
-              ),
-            ),
+            buildBodyHead(),
             StreamBuilder<List<BluetoothService>>(
               stream: device.services,
               initialData: [],
@@ -156,6 +55,59 @@ class DeviceScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildBodyHead() {
+    return StreamBuilder<BluetoothDeviceState>(
+      stream: device.state,
+      initialData: BluetoothDeviceState.connecting,
+      builder: (c, snapshot) => ListTile(
+        leading: (snapshot.data == BluetoothDeviceState.connected)
+            ? Icon(Icons.bluetooth_connected)
+            : Icon(Icons.bluetooth_disabled),
+        title: Text('Device is ${snapshot.data.toString().split('.')[1]}.'),
+        subtitle: Text('${device.id}'),
+      ),
+    );
+  }
+
+  PreferredSizeWidget buildAppBar(BuildContext context) {
+    return AppBar(
+      title: Text("当前设备：${device.name}"),
+      actions: <Widget>[
+        StreamBuilder<BluetoothDeviceState>(
+          stream: device.state,
+          initialData: BluetoothDeviceState.connecting,
+          builder: (c, snapshot) {
+            VoidCallback? onPressed;
+            String text;
+            switch (snapshot.data) {
+              case BluetoothDeviceState.connected:
+                onPressed = () => device.disconnect();
+                text = '断开连接';
+                break;
+              case BluetoothDeviceState.disconnected:
+                onPressed = () => device.connect();
+                text = '连接';
+                break;
+              default:
+                onPressed = null;
+                text = snapshot.data.toString().substring(21).toUpperCase();
+                break;
+            }
+            return TextButton(
+                onPressed: onPressed,
+                child: Text(
+                  text,
+                  style: Theme.of(context)
+                      .primaryTextTheme
+                      .button
+                      ?.copyWith(color: Colors.white),
+                ));
+          },
+        )
+      ],
     );
   }
 }

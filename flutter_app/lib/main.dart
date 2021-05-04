@@ -5,10 +5,10 @@ import 'package:flutter_blue/flutter_blue.dart';
 import 'FindDevicesScreen.dart';
 
 void main() {
-  runApp(FlutterBlueApp());
+  runApp(MyApp());
 }
 
-class FlutterBlueApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

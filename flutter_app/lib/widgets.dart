@@ -87,10 +87,13 @@ class ScanResultTile extends StatelessWidget {
     return ExpansionTile(
       title: _buildTitle(context),
       leading: Text(result.rssi.toString()),
-      trailing: RaisedButton(
+      trailing: ElevatedButton(
         child: Text('CONNECT'),
-        color: Colors.black,
-        textColor: Colors.white,
+        style: ElevatedButton.styleFrom(
+            primary: Colors.black,
+            textStyle: TextStyle(
+              color: Colors.white,
+            )),
         onPressed: (result.advertisementData.connectable) ? onTap : null,
       ),
       children: <Widget>[
@@ -131,7 +134,7 @@ class ServiceTile extends StatelessWidget {
           children: <Widget>[
             Text('Service'),
             Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}',
-                style: Theme.of(context).textTheme.body1?.copyWith(
+                style: Theme.of(context).textTheme.bodyText2?.copyWith(
                     color: Theme.of(context).textTheme.caption?.color))
           ],
         ),
@@ -141,7 +144,7 @@ class ServiceTile extends StatelessWidget {
       return ListTile(
         title: Text('Service'),
         subtitle:
-        Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}'),
+            Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}'),
       );
     }
   }
@@ -149,18 +152,10 @@ class ServiceTile extends StatelessWidget {
 
 class CharacteristicTile extends StatelessWidget {
   final BluetoothCharacteristic characteristic;
-  final List<DescriptorTile> descriptorTiles;
-  final VoidCallback? onReadPressed;
-  final VoidCallback? onWritePressed;
   final VoidCallback? onNotificationPressed;
 
   const CharacteristicTile(
-      {Key? key,
-        required this.characteristic,
-        required this.descriptorTiles,
-        this.onReadPressed,
-        this.onWritePressed,
-        this.onNotificationPressed})
+      {Key? key, required this.characteristic, this.onNotificationPressed})
       : super(key: key);
 
   @override
@@ -172,35 +167,13 @@ class CharacteristicTile extends StatelessWidget {
         final value = snapshot.data;
         return ExpansionTile(
           title: ListTile(
-            title: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text('Characteristic'),
-                Text(
-                    '0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',
-                    style: Theme.of(context).textTheme.body1?.copyWith(
-                        color: Theme.of(context).textTheme.caption?.color))
-              ],
-            ),
-            subtitle: Text(value.toString()),
+            subtitle: Text(
+                "frequency1 : ${caluFrequency1(value!)}\n\nfrequency2 :  ${caluFrequency2(value)}",style: TextStyle(fontSize: 30),),
             contentPadding: EdgeInsets.all(0.0),
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              IconButton(
-                icon: Icon(
-                  Icons.file_download,
-                  color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
-                ),
-                onPressed: onReadPressed,
-              ),
-              IconButton(
-                icon: Icon(Icons.file_upload,
-                    color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
-                onPressed: onWritePressed,
-              ),
               IconButton(
                 icon: Icon(
                     characteristic.isNotifying
@@ -211,10 +184,20 @@ class CharacteristicTile extends StatelessWidget {
               )
             ],
           ),
-          children: descriptorTiles,
         );
       },
     );
+  }
+
+  int caluFrequency1(List<int> value) {
+    print(value.toString());
+    if (value.length < 7) return 0;
+    return (value[0] + value[1] * 255 + value[2] * 255 * 255 + value[3] * 255 * 255* 255) >> 1;
+  }
+
+  int caluFrequency2(List<int> value) {
+    if (value.length < 7) return 0;
+    return (value[4] + value[5] * 255 + value[6] * 255* 255 + value[7] * 255* 255* 255) >> 1;
   }
 }
 
@@ -225,9 +208,9 @@ class DescriptorTile extends StatelessWidget {
 
   const DescriptorTile(
       {Key? key,
-        required this.descriptor,
-        this.onReadPressed,
-        this.onWritePressed})
+      required this.descriptor,
+      this.onReadPressed,
+      this.onWritePressed})
       : super(key: key);
 
   @override
@@ -241,7 +224,7 @@ class DescriptorTile extends StatelessWidget {
           Text('0x${descriptor.uuid.toString().toUpperCase().substring(4, 8)}',
               style: Theme.of(context)
                   .textTheme
-                  .body1
+                  .bodyText2
                   ?.copyWith(color: Theme.of(context).textTheme.caption?.color))
         ],
       ),
@@ -285,11 +268,11 @@ class AdapterStateTile extends StatelessWidget {
       child: ListTile(
         title: Text(
           'Bluetooth adapter is ${state.toString().substring(15)}',
-          style: Theme.of(context).primaryTextTheme.subhead,
+          style: Theme.of(context).primaryTextTheme.subtitle1,
         ),
         trailing: Icon(
           Icons.error,
-          color: Theme.of(context).primaryTextTheme.subhead?.color,
+          color: Theme.of(context).primaryTextTheme.subtitle1?.color,
         ),
       ),
     );

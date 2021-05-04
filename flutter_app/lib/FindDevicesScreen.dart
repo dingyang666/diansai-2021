@@ -66,10 +66,11 @@ class FindDevicesScreen extends StatelessWidget {
                         if (snapshot.data == BluetoothDeviceState.connected) {
                           return ElevatedButton(
                             child: Text('OPEN'),
-                            onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        DeviceScreen(device: d))),
+                            onPressed: () => Navigator.of(context)
+                                .push(MaterialPageRoute(builder: (context) {
+                              d.discoverServices();
+                              return DeviceScreen(device: d);
+                            })),
                           );
                         }
                         return Text(snapshot.data.toString());
@@ -83,12 +84,14 @@ class FindDevicesScreen extends StatelessWidget {
         stream: FlutterBlue.instance.scanResults,
         initialData: [],
         builder: (c, snapshot) => Column(
-          children: snapshot.data!.where((i) => !i.device.name.isEmpty).map((r) {
+          children:
+              snapshot.data!.where((i) => i.device.name.isNotEmpty).map((r) {
             return ScanResultTile(
               result: r,
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (context) {
                 r.device.connect();
+                r.device.discoverServices();
                 return DeviceScreen(device: r.device);
               })),
             );
