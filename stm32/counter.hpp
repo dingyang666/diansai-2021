@@ -13,7 +13,7 @@ private:
   TIM_HandleTypeDef htim1;
   TIM_HandleTypeDef htim2;
 
-  std::array<uint32_t, 400> arr1, arr2;
+  std::array<uint32_t, 1000> arr1, arr2;
 
 public:
   Counter();

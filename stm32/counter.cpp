@@ -79,8 +79,8 @@ void Counter::begin() {
 void Counter::update() {
   static uint32_t index = 0, lastUpdate = 1000;
 
-  if (HAL_GetTick() > lastUpdate && HAL_GetTick() - lastUpdate > 5) {
-    lastUpdate += 5;
+  if (HAL_GetTick() > lastUpdate && HAL_GetTick() - lastUpdate > 2) {
+    lastUpdate += 2;
     frequencyData.frequency1 -= arr1[index];
     arr1[index] = htim1.Instance->CNT;
     htim1.Instance->CNT = 0;
@@ -91,7 +91,7 @@ void Counter::update() {
     htim2.Instance->CNT = 0;
     frequencyData.frequency2 += arr2[index];
 
-    if (++index == 400)
+    if (++index == 1000)
       index = 0;
   }
 }
