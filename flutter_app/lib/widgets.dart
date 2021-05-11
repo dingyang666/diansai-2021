@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/chart.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 class ScanResultTile extends StatelessWidget {
@@ -166,24 +167,16 @@ class CharacteristicTile extends StatelessWidget {
       builder: (c, snapshot) {
         final value = snapshot.data;
         return ExpansionTile(
-          title: ListTile(
-            subtitle: Text(
-              "频率 : ${caluFrequency(value!)}\n占空比 :  ${caluDutyRatio(value)}",
-              style: TextStyle(fontSize: 28),
-            ),
-            contentPadding: EdgeInsets.all(0.0),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              IconButton(
-                icon: Icon(
-                    characteristic.isNotifying
-                        ? Icons.sync_disabled
-                        : Icons.sync,
-                    color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
-                onPressed: onNotificationPressed,
-              )
+          title: Column(
+            children: [
+              Text(
+                "频率 : ${calcFrequency(value!)}\n占空比 :  ${calcDutyRatio(value)}\n${calcInterval(value)}",
+                style: TextStyle(fontSize: 28),
+              ),
+              SizedBox.fromSize(
+                size: Size(0, 20),
+              ),
+              FrequencyLineChart(),
             ],
           ),
         );
@@ -191,24 +184,33 @@ class CharacteristicTile extends StatelessWidget {
     );
   }
 
-  String caluFrequency(List<int> value) {
-    if (value.length < 7) return "连接错误";
+  String calcInterval(List<int> value) {
+    if (value.length < 12) return "相位：连接错误\n间隔时间：连接错误";
     var f =
-        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1 ;
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
+    var i = (value[8] + (value[9] << 8) + (value[10] << 16) + (value[11] << 24)) / 1e5;
+    var time = i * 1e6 / f;
+    if (time > 1e3) return "相位：${(i * 360).toStringAsFixed(3)} 度\n间隔时间：${(time / 1e3).toStringAsFixed(3)} ms";
+    return "相位：${(i * 360).toStringAsFixed(3)} 度\n间隔时间：${(time).toStringAsFixed(3)} μs";
+  }
+
+  String calcFrequency(List<int> value) {
+    if (value.length < 12) return "连接错误";
+    var f =
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
     return getUnit(f);
   }
 
-  String caluDutyRatio(List<int> value) {
-    if (value.length < 7) return "连接错误";
+  String calcDutyRatio(List<int> value) {
+    if (value.length < 12) return "连接错误";
     var f =
-        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1 ;
-    var d =
-        (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24));
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
+    var d = (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24));
     if (f > 1e6) {
       return "${(d / 1000 + 2).toStringAsFixed(3)}  %";
     } else if (f > 5e5) {
       return "${(d / 1000 + 0.8).toStringAsFixed(3)}  %";
-    }else {
+    } else {
       return "${(d / 1000).toStringAsFixed(3)}  %";
     }
   }

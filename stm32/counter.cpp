@@ -1,5 +1,6 @@
 #include "counter.hpp"
 #include "stm32wbxx_hal.h"
+#include <cstdint>
 
 bool Counter::isInit = false;
 
@@ -18,7 +19,7 @@ void Counter::begin() {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Pin = GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -26,7 +27,7 @@ void Counter::begin() {
   GPIO_InitStruct = {0};
   GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -92,45 +93,70 @@ void Counter::begin() {
 }
 
 void Counter::update() {
-  static int index = 0, lastUpdate = 1000, i = 0, t;
-  static long long d2 = 0;
+  static uint32_t lastUpdate;
 
-  if (HAL_GetTick() > lastUpdate && HAL_GetTick() - lastUpdate > 2) {
-    lastUpdate += 2;
-    frequencyData.frequency1 -= arr1[index];
-    arr1[index] = htim1.Instance->CNT;
-    htim1.Instance->CNT = 0;
-    frequencyData.frequency1 += arr1[index];
-
-    if (frequencyData.frequency1 != 0)
-      t = 32000000 / frequencyData.frequency1;
-
-    d2 -= arr2[index];
-    arr2[index] = htim2.Instance->CCR3 - htim2.Instance->CCR1;
-    // 如果发生溢出，直接用上一次的
-    if (arr2[index] > 1e10 || arr2[index] < -1e10) {
-      if (index != 0) {
-        arr2[index] = arr2[index - 1];
-      } else {
-        arr2[index] = arr2[999];
-      }
-    } else {
-      if (arr2[index] < 0) {
-        arr2[index] = std::abs(arr2[index] + t);
-      }
-      arr2[index] = arr2[index] % t;
-    }
-    d2 += arr2[index];
-    frequencyData.dutyRatio = d2 * 200 / t;
-
-    if (++index == 500) {
-    //   printf("Duty ratio: %d %% fre: %d \n", (int)(d2 * 20 / t),
-    //          frequencyData.frequency1);
-      //   printf("CCR1: %d CCR3: %d \n", htim2.Instance->CCR1,
-      //          htim2.Instance->CCR3);
+  if (HAL_GetTick() > lastUpdate && HAL_GetTick() - lastUpdate > updatePeriod) {
+    lastUpdate += updatePeriod;
+    calcFre();
+    calcDuty();
+    calcInterval();
+    if (++index == updateFrequency) {
       index = 0;
     }
   }
+}
+
+void Counter::calcFre() {
+
+  frequencyData.frequency1 -= arr1[index];
+  arr1[index] = htim1.Instance->CNT;
+  htim1.Instance->CNT = 0;
+  frequencyData.frequency1 += arr1[index];
+
+  if (frequencyData.frequency1 != 0)
+    t = 32000000 / frequencyData.frequency1;
+}
+
+void Counter::calcDuty() {
+  static long long tmp = 0;
+  tmp -= arr2[index];
+  arr2[index] = htim2.Instance->CCR3 - htim2.Instance->CCR1;
+  // 如果发生溢出，直接用上一次的
+  if (arr2[index] > 1e10 || arr2[index] < -1e10) {
+    if (index != 0) {
+      arr2[index] = arr2[index - 1];
+    } else {
+      arr2[index] = arr2[updateFrequency - 1];
+    }
+  } else {
+    if (arr2[index] < 0) {
+      arr2[index] = std::abs(arr2[index] + t);
+    }
+    arr2[index] = arr2[index] % t;
+  }
+  tmp += arr2[index];
+  frequencyData.dutyRatio = tmp * 1000 * 100 / updateFrequency / t;
+}
+
+void Counter::calcInterval() {
+  static long long tmp = 0;
+  tmp -= arr3[index];
+  arr3[index] = htim2.Instance->CCR2 - htim2.Instance->CCR1;
+  // 如果发生溢出，直接用上一次的
+  if (arr3[index] > 1e10 || arr3[index] < -1e10) {
+    if (index != 0) {
+      arr3[index] = arr3[index - 1];
+    } else {
+      arr3[index] = arr3[updateFrequency - 1];
+    }
+  } else {
+    if (arr3[index] < 0) {
+      arr3[index] = std::abs(arr3[index] + t);
+    }
+    arr3[index] = arr3[index] % t;
+  }
+  tmp += arr3[index];
+  frequencyData.interval = tmp * 1000 * 100 / updateFrequency / t ;
 }
 
 Counter counter;
