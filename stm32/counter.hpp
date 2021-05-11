@@ -1,11 +1,14 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <mbed.h>
 
 #include "stm32wbxx_hal.h"
 
-struct FrequencyData { uint32_t frequency1, frequency2; };
+struct FrequencyData {
+  uint32_t frequency1, dutyRatio;
+};
 
 class Counter {
 private:
@@ -13,7 +16,7 @@ private:
   TIM_HandleTypeDef htim1;
   TIM_HandleTypeDef htim2;
 
-  std::array<uint32_t, 1000> arr1, arr2;
+  std::array<int, 1000> arr1, arr2;
 
 public:
   Counter();

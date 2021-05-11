@@ -23,11 +23,12 @@ void Counter::begin() {
   GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF14_TIM2;
+  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   htim1.Instance = TIM1;
@@ -55,10 +56,8 @@ void Counter::begin() {
   sClockSourceConfig.ClockFilter = 0;
   HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig);
 
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_ETRMODE2;
-  sClockSourceConfig.ClockPolarity = TIM_CLOCKPOLARITY_NONINVERTED;
-  sClockSourceConfig.ClockPrescaler = TIM_CLOCKPRESCALER_DIV1;
-  sClockSourceConfig.ClockFilter = 0;
+  sClockSourceConfig = {0};
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
   HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig);
 
   TIM_MasterConfigTypeDef sMasterConfig = {0};
@@ -68,16 +67,33 @@ void Counter::begin() {
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig);
 
+  sMasterConfig = {0};
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig);
 
+  TIM_IC_InitTypeDef sConfigIC = {0};
+
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1);
+  HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_2);
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_FALLING;
+  HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_3);
+  HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_4);
+
   HAL_TIM_Base_Start(&htim1);
-  HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_2);
+  HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_3);
+  HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_4);
 }
 
 void Counter::update() {
-  static uint32_t index = 0, lastUpdate = 1000;
+  static int index = 0, lastUpdate = 1000, i = 0, t;
+  static long long d2 = 0;
 
   if (HAL_GetTick() > lastUpdate && HAL_GetTick() - lastUpdate > 2) {
     lastUpdate += 2;
@@ -86,13 +102,34 @@ void Counter::update() {
     htim1.Instance->CNT = 0;
     frequencyData.frequency1 += arr1[index];
 
-    frequencyData.frequency2 -= arr2[index];
-    arr2[index] = htim2.Instance->CNT;
-    htim2.Instance->CNT = 0;
-    frequencyData.frequency2 += arr2[index];
+    if (frequencyData.frequency1 != 0)
+      t = 32000000 / frequencyData.frequency1;
 
-    if (++index == 1000)
+    d2 -= arr2[index];
+    arr2[index] = htim2.Instance->CCR3 - htim2.Instance->CCR1;
+    // 如果发生溢出，直接用上一次的
+    if (arr2[index] > 1e10 || arr2[index] < -1e10) {
+      if (index != 0) {
+        arr2[index] = arr2[index - 1];
+      } else {
+        arr2[index] = arr2[999];
+      }
+    } else {
+      if (arr2[index] < 0) {
+        arr2[index] = std::abs(arr2[index] + t);
+      }
+      arr2[index] = arr2[index] % t;
+    }
+    d2 += arr2[index];
+    frequencyData.dutyRatio = d2 * 200 / t;
+
+    if (++index == 500) {
+    //   printf("Duty ratio: %d %% fre: %d \n", (int)(d2 * 20 / t),
+    //          frequencyData.frequency1);
+      //   printf("CCR1: %d CCR3: %d \n", htim2.Instance->CCR1,
+      //          htim2.Instance->CCR3);
       index = 0;
+    }
   }
 }
 

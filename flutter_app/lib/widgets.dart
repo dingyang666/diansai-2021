@@ -168,7 +168,7 @@ class CharacteristicTile extends StatelessWidget {
         return ExpansionTile(
           title: ListTile(
             subtitle: Text(
-              "通道1 : ${caluFrequency1(value!)}\n\n通道2 :  ${caluFrequency2(value)}",
+              "频率 : ${caluFrequency(value!)}\n占空比 :  ${caluDutyRatio(value)}",
               style: TextStyle(fontSize: 28),
             ),
             contentPadding: EdgeInsets.all(0.0),
@@ -191,18 +191,26 @@ class CharacteristicTile extends StatelessWidget {
     );
   }
 
-  String caluFrequency1(List<int> value) {
+  String caluFrequency(List<int> value) {
     if (value.length < 7) return "连接错误";
     var f =
-        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 2;
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1 ;
     return getUnit(f);
   }
 
-  String caluFrequency2(List<int> value) {
+  String caluDutyRatio(List<int> value) {
     if (value.length < 7) return "连接错误";
     var f =
-        (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24)) / 2;
-    return getUnit(f);
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1 ;
+    var d =
+        (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24));
+    if (f > 1e6) {
+      return "${(d / 1000 + 2).toStringAsFixed(3)}  %";
+    } else if (f > 5e5) {
+      return "${(d / 1000 + 0.8).toStringAsFixed(3)}  %";
+    }else {
+      return "${(d / 1000).toStringAsFixed(3)}  %";
+    }
   }
 
   String getUnit(double f) {
