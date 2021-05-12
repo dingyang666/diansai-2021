@@ -34,8 +34,6 @@ class DeviceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    device.discoverServices();
-
     return Scaffold(
       appBar: buildAppBar(context),
       body: SingleChildScrollView(
@@ -61,13 +59,18 @@ class DeviceScreen extends StatelessWidget {
     return StreamBuilder<BluetoothDeviceState>(
       stream: device.state,
       initialData: BluetoothDeviceState.connecting,
-      builder: (c, snapshot) => ListTile(
-        leading: (snapshot.data == BluetoothDeviceState.connected)
-            ? Icon(Icons.bluetooth_connected)
-            : Icon(Icons.bluetooth_disabled),
-        title: Text('Device is ${snapshot.data.toString().split('.')[1]}.'),
-        subtitle: Text('${device.id}'),
-      ),
+      builder: (c, snapshot) {
+        if (snapshot.data == BluetoothDeviceState.connected) {
+          device.discoverServices();
+        }
+        return ListTile(
+          leading: (snapshot.data == BluetoothDeviceState.connected)
+              ? Icon(Icons.bluetooth_connected)
+              : Icon(Icons.bluetooth_disabled),
+          title: Text('Device is ${snapshot.data.toString().split('.')[1]}.'),
+          subtitle: Text('${device.id}'),
+        );
+      },
     );
   }
 

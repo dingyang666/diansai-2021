@@ -11,7 +11,7 @@ void Battery::start() {
   _ble.init(this, &Battery::on_init_complete);
 
   _event_queue.call_every(500, this, &Battery::blink);
-  _event_queue.call_every(150, this, &Battery::updateData);
+  _event_queue.call_every(200, this, &Battery::updateData);
   _event_queue.call_every(1, this, &Battery::updateFrequency);
 
   _event_queue.dispatch_forever();

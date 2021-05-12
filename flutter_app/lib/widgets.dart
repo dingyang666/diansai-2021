@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/chart.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 class ScanResultTile extends StatelessWidget {
@@ -150,7 +151,7 @@ class ServiceTile extends StatelessWidget {
   }
 }
 
-class CharacteristicTile extends StatelessWidget {
+class CharacteristicTile extends StatefulWidget {
   final BluetoothCharacteristic characteristic;
   final VoidCallback? onNotificationPressed;
 
@@ -159,30 +160,55 @@ class CharacteristicTile extends StatelessWidget {
       : super(key: key);
 
   @override
+  _CharacteristicTileState createState() => _CharacteristicTileState();
+}
+
+class _CharacteristicTileState extends State<CharacteristicTile> {
+  var chart = FrequencyLineChart();
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<int>>(
-      stream: characteristic.value,
-      initialData: characteristic.lastValue,
+      stream: widget.characteristic.value,
+      initialData: widget.characteristic.lastValue,
       builder: (c, snapshot) {
         final value = snapshot.data;
-        return ExpansionTile(
-          title: ListTile(
-            subtitle: Text(
-              "通道1 : ${caluFrequency1(value!)}\n\n通道2 :  ${caluFrequency2(value)}",
-              style: TextStyle(fontSize: 28),
-            ),
-            contentPadding: EdgeInsets.all(0.0),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              IconButton(
-                icon: Icon(
-                    characteristic.isNotifying
-                        ? Icons.sync_disabled
-                        : Icons.sync,
-                    color: Theme.of(context).iconTheme.color?.withOpacity(0.5)),
-                onPressed: onNotificationPressed,
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(28, 10, 28, 20),
+          child: Column(
+            children: [
+              Text(
+                "频率 : ${calcFrequency(value!)}\n占空比 :  ${calcDutyRatio(value)}\n${calcInterval(value)}",
+                style: TextStyle(fontSize: 25),
+              ),
+              SizedBox.fromSize(
+                size: Size(0, 30),
+              ),
+              Text("频率均线"),
+              chart,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                      onPressed: () {
+                        widget.characteristic
+                            .setNotifyValue(!widget.characteristic.isNotifying);
+                      },
+                      child: widget.characteristic.isNotifying
+                          ? Text("暂停读数")
+                          : Text("继续读数")),
+                  SizedBox.fromSize(size: Size(50, 0)),
+                  ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          // chart.clean();
+                          widget.characteristic.lastValue.clear();
+                          widget.characteristic.lastValue
+                              .addAll(List.generate(12, (index) => 0));
+                        });
+                      },
+                      child: Text("清除读数")),
+                ],
               )
             ],
           ),
@@ -191,18 +217,40 @@ class CharacteristicTile extends StatelessWidget {
     );
   }
 
-  String caluFrequency1(List<int> value) {
-    if (value.length < 7) return "连接错误";
+  String calcInterval(List<int> value) {
+    if (value.length < 12) return "相位：连接错误\n间隔时间：连接错误";
     var f =
-        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 2;
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
+    var i =
+        (value[8] + (value[9] << 8) + (value[10] << 16) + (value[11] << 24)) /
+            1e5;
+    if (f == 0) f = 1;
+    var time = i * 1e6 / f;
+    if (time > 1e3)
+      return "相位：${(i * 360).toStringAsFixed(3)} 度\n间隔时间：${(time / 1e3).toStringAsFixed(3)} ms";
+    return "相位：${(i * 360).toStringAsFixed(3)} 度\n间隔时间：${(time).toStringAsFixed(3)} μs";
+  }
+
+  String calcFrequency(List<int> value) {
+    if (value.length < 12) return "连接错误";
+    var f =
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
+    chart.addValue(f);
     return getUnit(f);
   }
 
-  String caluFrequency2(List<int> value) {
-    if (value.length < 7) return "连接错误";
+  String calcDutyRatio(List<int> value) {
+    if (value.length < 12) return "连接错误";
     var f =
-        (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24)) / 2;
-    return getUnit(f);
+        (value[0] + (value[1] << 8) + (value[2] << 16) + (value[3] << 24)) / 1;
+    var d = (value[4] + (value[5] << 8) + (value[6] << 16) + (value[7] << 24));
+    // if (f > 1e6) {
+    //   return "${(d / 1000 + 2).toStringAsFixed(3)}  %";
+    // } else if (f > 5e5) {
+    //   return "${(d / 1000 + 0.8).toStringAsFixed(3)}  %";
+    // } else {
+    return "${(d / 1000).toStringAsFixed(3)}  %";
+    // }
   }
 
   String getUnit(double f) {

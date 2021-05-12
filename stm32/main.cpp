@@ -1,3 +1,4 @@
+#include "PinNames.h"
 #include "battery.hpp"
 #include "cmsis_os2.h"
 #include "counter.hpp"
