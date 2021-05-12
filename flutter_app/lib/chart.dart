@@ -2,6 +2,39 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 class FrequencyLineChart extends StatefulWidget {
+  List<FlSpot> spots = [
+    FlSpot(0, 5),
+    FlSpot(1, 4),
+    FlSpot(3, 3),
+    FlSpot(4, 5),
+    FlSpot(5, 5),
+    FlSpot(6, 7),
+    FlSpot(7, 9),
+    FlSpot(8, 7),
+    FlSpot(9, 6),
+    FlSpot(10, 5),
+  ];
+  double maxX = 10;
+  double minY = 0;
+  double maxY = 10;
+  int idx = 0;
+
+  void clean() {
+    // spots.clear();
+    // maxX = 10;
+    // minY = 0;
+    // maxY = 10;
+  }
+
+  void addValue(double f) {
+    // idx++;
+    // spots.add(FlSpot(idx.toDouble(), f));
+    // if (spots.length > 10) {
+    //   spots.removeAt(0);
+    //   maxX = idx.toDouble();
+    // }
+  }
+
   @override
   _FrequencyLineChartState createState() => _FrequencyLineChartState();
 }
@@ -12,31 +45,15 @@ class _FrequencyLineChartState extends State<FrequencyLineChart> {
     const Color(0xff02d39a),
   ];
 
-  List<FlSpot> spots = [];
-  double maxX = 10;
-  double minY = 0;
-  double maxY = 10;
-
-  void addValue(double f) {
-    if(spots.length < 101) {
-      spots.add(FlSpot(spots.length / 10, f));
-      return;
-    }
-    spots.removeAt(0);
-    for(var spot in spots) {
-
-    }
-  }
-
   bool showAvg = false;
 
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.2,
+      aspectRatio: 1.3,
       child: Padding(
         padding:
-            const EdgeInsets.only(right: 0, left: 2.0, top: 24, bottom: 12),
+            const EdgeInsets.only(right: 0, left: 2.0, top: 10, bottom: 10),
         child: LineChart(
           mainData(),
         ),
@@ -72,7 +89,7 @@ class _FrequencyLineChartState extends State<FrequencyLineChart> {
               fontWeight: FontWeight.bold,
               fontSize: 16),
           getTitles: (value) {
-            return "${(value - 10).toInt()}";
+            return "${(10 + value - widget.maxX).toInt()}";
           },
           margin: 8,
         ),
@@ -103,13 +120,13 @@ class _FrequencyLineChartState extends State<FrequencyLineChart> {
       borderData: FlBorderData(
           show: true,
           border: Border.all(color: const Color(0xff37434d), width: 1)),
-      minX: maxX - 10,
-      maxX: maxX,
-      minY: minY,
-      maxY: maxY,
+      minX: widget.maxX - 10,
+      maxX: widget.maxX,
+      minY: widget.minY,
+      maxY: widget.maxY,
       lineBarsData: [
         LineChartBarData(
-          spots: spots,
+          spots: widget.spots,
           isCurved: true,
           colors: gradientColors,
           barWidth: 5,
