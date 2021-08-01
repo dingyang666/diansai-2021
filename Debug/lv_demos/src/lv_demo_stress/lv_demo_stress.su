@@ -1,0 +1,6 @@
+lv_demo_stress.c:438:13:msgbox_del	0	static
+lv_demo_stress.c:453:13:arc_set_end_angle_anim	0	static
+lv_demo_stress.c:443:13:set_y_anim	0	static
+lv_demo_stress.c:448:13:set_width_anim	0	static
+lv_demo_stress.c:55:13:obj_test_task_cb	176	static
+lv_demo_stress.c:46:6:lv_demo_stress	0	static

@@ -1,0 +1,3 @@
+lv_demo_keypad_encoder.c:203:13:ta_event_cb	24	static
+lv_demo_keypad_encoder.c:186:13:msgbox_event_cb	16	static
+lv_demo_keypad_encoder.c:48:6:lv_demo_keypad_encoder	40	static

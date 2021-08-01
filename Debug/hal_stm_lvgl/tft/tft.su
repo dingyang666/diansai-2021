@@ -1,0 +1,10 @@
+tft.c:132:6:monitor_cb	0	static
+tft.c:572:13:DMA_TransferError	0	static
+tft.c:175:13:tft_flush_cb	24	static,ignoring_inline_asm
+tft.c:540:13:DMA_TransferComplete	16	static
+tft.c:361:6:LCD_SetUpdateRegion	16	static
+tft.c:438:6:HAL_DSI_TearingEffectCallback	8	static
+tft.c:447:6:HAL_DSI_EndOfRefreshCallback	32	static
+tft.c:583:6:DMA2_Stream0_IRQHandler	0	static
+tft.c:593:6:BSP_LCD_MspInit	16	static
+tft.c:141:6:tft_init	136	static
